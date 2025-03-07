@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text Detector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --light: #f1f5f9;
+            --dark: #0f172a;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border-radius: 8px;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .logo span {
+            color: var(--dark);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-top: 32px;
+        }
+        
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            height: fit-content;
+        }
+        
+        .input-section {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-section h2 {
+            margin-top: 0;
+            color: var(--dark);
+        }
+        
+        .textarea-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--border-radius);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .char-count {
+            position: absolute;
+            bottom: 8px;
+            right: 16px;
+            font-size: 0.85rem;
+            color: var(--secondary);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background-color: white;
+            color: var(--secondary);
+            border: 1px solid #cbd5e1;
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--light);
+        }
+        
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-btn-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .results-section {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .results-section h2 {
+            margin-top: 0;
+            color: var(--dark);
+        }
+        
+        .detection-summary {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .detection-score {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .detection-label {
+            font-size: 1.25rem;
+            padding: 6px 16px;
+            border-radius: 50px;
+            display: inline-block;
+        }
+        
+        .label-human {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .label-ai {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .chart-container {
+            flex-grow: 1;
+            position: relative;
+            min-height: 300px;
+        }
+        
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        }
+        
+        .breakdown-table th, .breakdown-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .breakdown-table th {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100%;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            border: 1px solid #f87171;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .no-results {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+            color: var(--secondary);
+        }
+        
+        .no-results svg {
+            margin-bottom: 16px;
+            color: #94a3b8;
+        }
+        
+        .feature-list {
+            margin-top: 0;
+            padding-left: 20px;
+        }
+        
+        .feature-list li {
+            margin-bottom: 8px;
+        }
+        
+        .footer {
+            margin-top: 48px;
+            text-align: center;
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">AI<span>Detector</span></a>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="main-content">
+            <div class="card input-section">
+                <h2>Analyze Text</h2>
+                <p>Paste your text below to check if it was written by AI or a human.</p>
+                
+                <div id="error-container"></div>
+                
+                <div class="textarea-wrapper">
+                    <textarea id="text-input" placeholder="Enter or paste text here (minimum 100 characters recommended)"></textarea>
+                    <div class="char-count">0 characters</div>
+                </div>
+                
+                <div class="button-group">
+                    <button id="analyze-btn" class="btn-primary">Analyze Text</button>
+                    
+                    <div class="upload-btn-wrapper">
+                        <button class="btn-secondary">Upload File</button>
+                        <input type="file" id="file-upload" accept=".txt" />
+                    </div>
+                    
+                    <button id="clear-btn" class="btn-secondary">Clear</button>
+                </div>
+                
+                <div>
+                    <h3>Features</h3>
+                    <ul class="feature-list">
+                        <li>Distinguish between AI and human-written text</li>
+                        <li>Identify specific AI models (ChatGPT, Claude, Gemini)</li>
+                        <li>Visualize probability distribution</li>
+                        <li>Support for text files</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card results-section">
+                <h2>Results</h2>
+                
+                <div id="results-content">
+                    <div class="no-results">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <p>No analysis yet. Enter text and click "Analyze Text" to get started.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer container">
+        <p>&copy; 2025 AI Detector. All rights reserved.</p>
+    </footer>
+    
+    <script>
+        $(document).ready(function() {
+        const apiBaseUrl = 'http://127.0.0.1:5000';
+        
+        // Update character count on input
+        $('#text-input').on('input', function() {
+            const charCount = $(this).val().length;
+            $('.char-count').text(charCount + ' characters');
+        });
+
+        // Analyze button click handler
+        $('#analyze-btn').click(function() {
+            const text = $('#text-input').val().trim();
+            $('#error-container').empty();
+
+            if (text.length < 50) {
+                showError('Please enter at least 50 characters for accurate analysis.');
+                return;
+            }
+
+            $('.loading-overlay').css('display', 'flex');
+
+            $.ajax({
+                url: apiBaseUrl + '/predict',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ text: text }),
+                success: function(response) {
+                    console.log("Analysis response:", response);
+                    displayResults(response);
+                },
+                error: function(xhr, status, error) {
+                    $('.loading-overlay').css('display', 'none');
+                    console.error("Analysis error:", xhr.responseJSON || error);
+                    let errorMessage = "Error analyzing text";
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage += ": " + xhr.responseJSON.error;
+                    }
+                    showError(errorMessage);
+                },
+                complete: function() {
+                    $('.loading-overlay').css('display', 'none');
+                }
+            });
+        });
+
+        // Clear button click handler
+        $('#clear-btn').click(function() {
+            // Clear the text input
+            $('#text-input').val('');
+            // Reset character count
+            $('.char-count').text('0 characters');
+            // Clear any error messages
+            $('#error-container').empty();
+            // Reset results section to initial state
+            $('#results-content').html(`
+                <div class="no-results">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <p>No analysis yet. Enter text and click "Analyze Text" to get started.</p>
+                </div>
+            `);
+        });
+
+        // File upload handler
+        $('#file-upload').change(function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#text-input').val(e.target.result);
+                // Update character count
+                const charCount = $('#text-input').val().length;
+                $('.char-count').text(charCount + ' characters');
+            };
+            reader.readAsText(file);
+        });
+
+        function showError(message) {
+            $('#error-container').html(`
+                <div class="error-message">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `);
+        }
+
+        function displayResults(results) {
+            if (results.error) {
+                showError(results.error);
+                return;
+            }
+
+            // Get the aggregate values
+            let totalAI = results['AI-generated (aggregate)'] || 0;
+            let totalHuman = results['Human-written (aggregate)'] || 0;
+
+            // Determine which is the dominant category
+            let isAIDominant = totalAI > totalHuman;
+            let dominantPercentage = isAIDominant ? totalAI : totalHuman;
+            let finalLabel = isAIDominant ? "AI-Generated" : "Human-Written";
+            let finalColor = isAIDominant ? "label-ai" : "label-human";
+            let displayPercentage = isAIDominant ? totalAI : totalHuman;
+
+            // Create detection summary
+            let summaryHTML = `<div class="detection-summary">
+                                <div class="detection-score">${displayPercentage.toFixed(1)}% ${isAIDominant ? 'AI' : 'Human'}</div>
+                                <div class="detection-label ${finalColor}">${finalLabel}</div>
+                            </div>`;
+
+            // Create detailed results table
+            let tableHTML = `<h3>Detection Results:</h3>
+                            <table class="breakdown-table">
+                            <thead>
+                                <tr>
+                                <th>Category</th>
+                                <th>Probability</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+            // First, show the aggregate values
+            tableHTML += `<tr><td><strong>AI-generated (aggregate)</strong></td><td><strong>${totalAI.toFixed(2)}%</strong></td></tr>`;
+            tableHTML += `<tr><td><strong>Human-written (aggregate)</strong></td><td><strong>${totalHuman.toFixed(2)}%</strong></td></tr>`;
+            tableHTML += `<tr><td colspan="2"><hr></td></tr>`;
+            
+            // Then show the individual models, but skip the aggregates we already displayed
+            Object.entries(results).forEach(([key, value]) => {
+                if (key !== 'AI-generated (aggregate)' && key !== 'Human-written (aggregate)') {
+                    // Classify each model correctly
+                    let category = "";
+                    if (key === "ChatGPT" || key === "Claude" || key === "Gemini") {
+                        category = "AI Model";
+                    } else if (key === "Human") {
+                        category = "Human";
+                    }
+                    
+                    tableHTML += `<tr><td>${key} <em>(${category})</em></td><td>${value.toFixed(2)}%</td></tr>`;
+                }
+            });
+
+            tableHTML += `</tbody></table>`;
+
+            // Combine and display results
+            $('#results-content').html(summaryHTML + tableHTML);
+        }
+    });
+    </script>
+    
+    
+</body>
+</html>
